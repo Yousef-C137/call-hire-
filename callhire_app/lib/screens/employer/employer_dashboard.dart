@@ -153,51 +153,175 @@ class _EmployerDashboardState extends State<EmployerDashboard> with SingleTicker
         padding: const EdgeInsets.all(12),
         itemBuilder: (context, index) {
           final app = applications[index];
-          return Card(
-            elevation: 3,
-            margin: const EdgeInsets.only(bottom: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(app['seeker_name'] ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      _buildStatusChip(app['status'] ?? 'pending'),
-                    ],
-                  ),
-                  Text('Applied for: ${app['title']}'),
-                  if (app['skills'] != null) Text('Skills: ${app['skills']}', style: const TextStyle(color: Colors.grey)),
-                  if (app['experience_years'] != null) Text('Experience: ${app['experience_years']} years', style: const TextStyle(color: Colors.grey)),
-                  const Divider(),
-                  if (app['status'] == 'pending')
+          return GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => _EmployerAppDetailScreen(
+                  app: app,
+                  onUpdateStatus: _updateStatus,
+                ),
+              ),
+            ),
+            child: Card(
+              elevation: 3,
+              margin: const EdgeInsets.only(bottom: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        TextButton.icon(
-                          onPressed: () => _updateStatus(app['application_id'], 'rejected'),
-                          icon: const Icon(Icons.close, color: Colors.red),
-                          label: const Text('Reject', style: TextStyle(color: Colors.red)),
-                        ),
-                        const SizedBox(width: 10),
-                        ElevatedButton.icon(
-                          onPressed: () => _updateStatus(app['application_id'], 'accepted'),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                          icon: const Icon(Icons.check),
-                          label: const Text('Accept'),
-                        ),
+                        Text(app['seeker_name'] ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        _buildStatusChip(app['status'] ?? 'pending'),
                       ],
-                    )
-                  else
-                    Text('Status: ${app['status']}', style: const TextStyle(fontStyle: FontStyle.italic)),
-                ],
+                    ),
+                    Text('Applied for: ${app['title']}'),
+                    if (app['skills'] != null) Text('Skills: ${app['skills']}', style: const TextStyle(color: Colors.grey)),
+                    if (app['experience_years'] != null) Text('Experience: ${app['experience_years']} years', style: const TextStyle(color: Colors.grey)),
+                  ],
+                ),
               ),
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(String status) {
+    Color color = Colors.orange;
+    if (status == 'accepted') color = Colors.green;
+    if (status == 'rejected') color = Colors.red;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color),
+      ),
+      child: Text(status, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
+    );
+  }
+}
+class _EmployerAppDetailScreen extends StatelessWidget {
+  final Map<String, dynamic> app;
+  final Future<void> Function(int, String) onUpdateStatus;
+
+  const _EmployerAppDetailScreen({required this.app, required this.onUpdateStatus});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.blue.shade900,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Applicant Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 32, backgroundColor: Colors.blue.shade50,
+                  child: Icon(Icons.person, color: Colors.blue.shade900, size: 36),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(app['seeker_name'] ?? '', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                      Text('Applied for: ${app['title']}', style: TextStyle(color: Colors.blue.shade900, fontSize: 14)),
+                    ],
+                  ),
+                ),
+                _buildStatusChip(app['status'] ?? 'pending'),
+              ],
+            ),
+            const Divider(height: 40),
+            if (app['skills'] != null) _buildDetailRow(Icons.star, 'Skills', app['skills']),
+            if (app['experience_years'] != null) _buildDetailRow(Icons.work_history, 'Experience', '${app['experience_years']} years'),
+            if (app['email'] != null) _buildDetailRow(Icons.email, 'Email', app['email']),
+            if (app['phone'] != null) _buildDetailRow(Icons.phone, 'Phone', app['phone']),
+            if (app['language'] != null) _buildDetailRow(Icons.language, 'Language', '${app['language']} (${app['language_level'] ?? ''})'),
+            const SizedBox(height: 40),
+            if (app['status'] == 'pending')
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        onUpdateStatus(app['application_id'], 'rejected');
+                        Navigator.pop(context);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.close),
+                      label: const Text('Reject', style: TextStyle(fontSize: 16)),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        onUpdateStatus(app['application_id'], 'accepted');
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.check),
+                      label: const Text('Accept', style: TextStyle(fontSize: 16)),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Center(
+                child: Text(
+                  'This application has been ${app['status']}.',
+                  style: const TextStyle(fontSize: 16, fontStyle: FontStyle.italic, color: Colors.grey),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Colors.blue.shade900, size: 22),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                const SizedBox(height: 4),
+                Text(value, style: const TextStyle(fontSize: 16)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
